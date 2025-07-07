@@ -2,12 +2,23 @@ services:
   - type: web
     name: twitter-bookmark-scraper
     env: node
-    buildCommand: |
-      npm install
-      npx playwright install --with-deps
+    buildCommand: npm install
     startCommand: npm start
+    plan: starter
+    region: oregon
+    branch: main
     envVars:
-      - key: PORT
-        value: 3000
+      - key: NODE_ENV
+        value: production
+      - key: TWITTER_SCRAPER_TOKEN
+        sync: false
       - key: TWITTER_COOKIES
-        value: $TWITTER_COOKIES
+        sync: false
+      - key: TWITTER_USER_ID
+        sync: false
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: playwright-cache
+      mountPath: /opt/render/.cache
+      sizeGB: 1

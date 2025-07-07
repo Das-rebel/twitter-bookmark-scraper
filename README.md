@@ -1,51 +1,138 @@
-# 🐦 Twitter Bookmark Scraper
+# Twitter Bookmark Scraper
 
-A headless scraper built with Playwright and Express.js to extract recent Twitter bookmarks.
+A cloud-based Twitter bookmark scraper designed for n8n automation workflows. Uses Puppeteer for reliable web scraping and deploys easily on Render.
 
-## 🚀 Deploy on Render
+## Features
 
-### 1. Prerequisites
-- Node.js 18+
-- Twitter account with valid cookies
-- Render.com account
+- **Secure API**: Token-based authentication for n8n integration
+- **Robust Scraping**: Uses Puppeteer with optimized browser settings
+- **Cloud Ready**: Configured for Render deployment with health checks
+- **Recent Filtering**: Automatically filters bookmarks from last 48 hours
+- **Error Handling**: Comprehensive error responses and logging
 
-### 2. Files Overview
-- `index.js`: Main server with /scrape and /health routes
-- `.env`: Stores `TWITTER_COOKIES` as JSON string
-- `render.yaml`: Preconfigured for Render deployment
-- `package.json`: Declares dependencies and postinstall script
+## API Endpoints
 
-### 3. Setup
+### POST `/scrape`
+Scrapes Twitter bookmarks for the authenticated user.
 
-#### Local
+**Request Body:**
+```json
+{
+  "auth_token": "your_secure_token",
+  "user_id": "twitter_user_id"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "bookmarks": [
+    {
+      "id": "tweet_id",
+      "text": "Tweet content...",
+      "author": "Author Name",
+      "created_at": "2024-01-01T00:00:00.000Z",
+      "url": "https://twitter.com/user/status/123",
+      "media_urls": ["https://..."]
+    }
+  ],
+  "total_count": 5,
+  "scraped_at": "2024-01-01T00:00:00.000Z",
+  "user_id": "twitter_user_id"
+}
+```
+
+### GET `/health`
+Health check endpoint for monitoring.
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `TWITTER_SCRAPER_TOKEN` | Yes | Secure token for API authentication |
+| `TWITTER_COOKIES` | Optional | Twitter session cookies in JSON format |
+| `TWITTER_USER_ID` | Optional | Default Twitter user ID |
+| `PORT` | No | Server port (auto-set by Render) |
+
+## Deployment on Render
+
+1. **Fork this repository**
+2. **Connect to Render**:
+   - Go to [Render Dashboard](https://dashboard.render.com)
+   - Create new Web Service
+   - Connect your GitHub repository
+
+3. **Configure Environment Variables**:
+   ```
+   TWITTER_SCRAPER_TOKEN=your_secure_random_token
+   TWITTER_COOKIES=[{"name":"auth_token","value":"...","domain":".twitter.com","path":"/","secure":true,"httpOnly":true}]
+   ```
+
+4. **Deploy**: Render will automatically deploy using the `render.yaml` configuration
+
+## n8n Integration
+
+Use the HTTP Request node with:
+- **URL**: `https://your-render-app.onrender.com/scrape`
+- **Method**: POST
+- **Body**: 
+  ```json
+  {
+    "auth_token": "{{ $env.TWITTER_SCRAPER_TOKEN }}",
+    "user_id": "{{ $env.TWITTER_USER_ID }}"
+  }
+  ```
+
+## Getting Twitter Cookies
+
+1. Open Twitter in your browser and log in
+2. Open Developer Tools (F12)
+3. Go to Application/Storage → Cookies → https://twitter.com
+4. Find the `auth_token` cookie
+5. Format as JSON array for the environment variable
+
+## Local Development
+
 ```bash
+# Clone repository
+git clone https://github.com/Das-rebel/twitter-bookmark-scraper.git
+cd twitter-bookmark-scraper
+
+# Install dependencies
 npm install
-npx playwright install --with-deps
-cp .env.example .env  # or set your actual cookie string
+
+# Copy environment file
+cp .env.example .env
+
+# Edit .env with your credentials
+# Start server
 npm start
 ```
 
-#### Render
-- Upload repo to GitHub
-- Connect repo to Render
-- Confirm the following:
-  - **Build Command**: `npm install && npx playwright install --with-deps`
-  - **Start Command**: `npm start`
-  - **Env Var**: `TWITTER_COOKIES` with your cookie string
+## Troubleshooting
 
-### 4. Endpoints
+### "Bad Gateway" Error
+- Check that `TWITTER_SCRAPER_TOKEN` matches between n8n and Render
+- Verify Twitter cookies are valid and properly formatted
+- Check Render logs for detailed error messages
 
-- `GET /health` – check if server is live
-- `POST /scrape` – returns recent tweets (last 48h) from bookmarks
+### Browser Installation Failed
+If you see "Failed to install browsers" during deployment:
+- This version now uses Puppeteer instead of Playwright to avoid browser installation issues
+- Puppeteer comes with a pre-installed Chromium browser
+- No additional browser installation is needed
 
-### 5. Dependencies
-- [express](https://www.npmjs.com/package/express) – Web server
-- [playwright](https://www.npmjs.com/package/playwright) – Headless browser automation
-- [dotenv](https://www.npmjs.com/package/dotenv) – Load environment variables
+### No Tweets Returned
+- Ensure you have bookmarks on Twitter
+- Check that cookies are from an authenticated session
+- Verify the user has bookmarks within the last 48 hours
 
-### 🛡️ Notes
-- Make sure `TWITTER_COOKIES` is a valid JSON string representing your session cookies.
-- This tool uses headless Chromium; Render must install browser binaries.
+### Timeout Errors
+- Twitter's anti-bot measures may be blocking requests
+- Try refreshing your Twitter cookies
+- Check if your IP is rate-limited
 
-### 🧠 Tip
-For long scraping sessions or batch exports, consider hosting with logs enabled and rate-limit detection.
+## License
+
+MIT License - see LICENSE file for details.
