@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: twitter-bookmark-scraper
+    env: node
+    buildCommand: |
+      npm install
+      npx playwright install --with-deps
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: TWITTER_COOKIES
+        value: $TWITTER_COOKIES

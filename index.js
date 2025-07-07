@@ -6,13 +6,32 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-app.post('/scrape', async (req, res) => {
-  const cookies = JSON.parse(process.env.TWITTER_COOKIES || '[]');
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ storageState: { cookies, origins: [] } });
-  const page = await context.newPage();
+// Health check route
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    time: new Date().toISOString()
+  });
+});
 
+app.post('/scrape', async (req, res) => {
+  let browser;
   try {
+    const rawCookies = process.env.TWITTER_COOKIES;
+    if (!rawCookies) {
+      throw new Error('TWITTER_COOKIES env var is missing');
+    }
+
+    const cookies = JSON.parse(rawCookies);
+    if (!Array.isArray(cookies)) {
+      throw new Error('TWITTER_COOKIES must be a JSON array');
+    }
+
+    browser = await chromium.launch({ headless: true });
+    const context = await browser.newContext({ storageState: { cookies, origins: [] } });
+    const page = await context.newPage();
+
+    console.log('Navigating to Twitter bookmarks...');
     await page.goto('https://twitter.com/i/bookmarks');
     await page.waitForSelector('[data-testid="tweet"]', { timeout: 30000 });
 
@@ -53,11 +72,14 @@ app.post('/scrape', async (req, res) => {
 
     res.json(recent);
   } catch (err) {
-    console.error(err);
+    console.error('❌ Scraper error:', err);
     res.status(500).json({ error: 'Scraping failed', detail: err.message });
   } finally {
-    await browser.close();
+    if (browser) await browser.close();
   }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log('Scraper running'));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`✅ Scraper running at http://localhost:${PORT}`);
+});
