@@ -2,23 +2,18 @@ services:
   - type: web
     name: twitter-bookmark-scraper
     env: node
-    buildCommand: npm install
+    plan: free
+    buildCommand: npm install --production
     startCommand: npm start
-    plan: starter
-    region: oregon
-    branch: main
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
-      - key: TWITTER_SCRAPER_TOKEN
-        sync: false
-      - key: TWITTER_COOKIES
-        sync: false
-      - key: TWITTER_USER_ID
-        sync: false
-    healthCheckPath: /health
-    autoDeploy: true
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: false
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: /opt/render/project/.render/chrome/opt/google/chrome/google-chrome
     disk:
-      name: playwright-cache
-      mountPath: /opt/render/.cache
+      name: render-disk
+      mountPath: /opt/render/project/.render
       sizeGB: 1
