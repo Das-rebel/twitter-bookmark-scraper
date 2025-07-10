@@ -1,19 +1,37 @@
-services:
-  - type: web
-    name: twitter-bookmark-scraper
-    env: node
-    plan: free
-    buildCommand: npm install --production
-    startCommand: npm start
-    healthCheckPath: /health
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: false
-      - key: PUPPETEER_EXECUTABLE_PATH
-        value: /opt/render/project/.render/chrome/opt/google/chrome/google-chrome
-    disk:
-      name: render-disk
-      mountPath: /opt/render/project/.render
-      sizeGB: 1
+# Use official Puppeteer image with Chrome pre-installed
+FROM ghcr.io/puppeteer/puppeteer:22.8.2
+
+# Set working directory
+WORKDIR /usr/src/app
+
+# Set environment variables
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies (skip Puppeteer download since we have Chrome)
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy application code
+COPY . .
+
+# Create non-root user for security
+RUN groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
+    && mkdir -p /home/pptruser/Downloads \
+    && chown -R pptruser:pptruser /home/pptruser \
+    && chown -R pptruser:pptruser /usr/src/app
+
+# Switch to non-root user
+USER pptruser
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
+
+# Start application
+CMD ["npm", "start"]
